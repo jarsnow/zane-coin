@@ -1,5 +1,3 @@
-# This example requires the 'message_content' intent.
-
 import discord
 from dotenv import load_dotenv
 import os
@@ -7,7 +5,7 @@ import os
 class MyClient(discord.Client):
 
     async def on_ready(self):
-        print(f'Logged on as {self.user}!')
+        print(f'Now running as {self.user}...')
 
     async def on_message(self, message):
         author = message.author
@@ -53,17 +51,18 @@ class MyClient(discord.Client):
 
 def main():
 
+    # set bot prefix
     global prefix
     prefix = 'zc'
 
+    # setup discord wrapper
     intents = discord.Intents.default()
     intents.message_content = True
-
     client = MyClient(intents=intents)
 
+    # load discord token from .env file
     load_dotenv()
     token = os.getenv('DISCORD_TOKEN')
-    print(token)
     client.run(token)
 
 
