@@ -1,10 +1,13 @@
 import discord
 from dotenv import load_dotenv
 import os
+import sqlite3
+import time
 
 class MyClient(discord.Client):
 
     async def on_ready(self):
+        self.connection = sqlite3.connect("test_database.db")
         print(f'Now running as {self.user}...')
 
     async def on_message(self, message):
@@ -42,6 +45,34 @@ class MyClient(discord.Client):
             return 'sweet dreams my love'
         elif 'i love you' in message_string:
             return 'i love you too'
+        elif 'check coins' in message_string:
+
+            user_uid = user_message.author.id
+            
+            # connect to table
+            cursor = self.connection.cursor()
+            # get coin count from tables
+            cursor.execute("SELECT UID FROM USERS")
+            rows = cursor.fetchall()
+            for row in rows:
+                # check if uid is equal to user UID
+                if row[0] == user_uid:
+                    # get coin count
+                    cursor.execute(f"SELECT CoinCount from USERS WHERE UID = {user_uid}")
+                    new_rows = cursor.fetchone()
+                    coin_count = new_rows[0]
+                    
+                    return f'you have {coin_count} coins'
+        
+            # add user to db if they aren't in the table
+
+            # get epoch time in seconds
+            epoch_time = int(time.time())
+            cursor.execute(f"INSERT INTO USERS (UID, CoinCount, TimeLastCoinAwarded) VALUES ({user_uid}, 0, {epoch_time})")
+            self.connection.commit()
+            print(f"added user to db {user_uid}")
+
+            return f'you have no coins lol, welcome though'
         else:
             return ""
         
