@@ -17,7 +17,8 @@ class MyClient(discord.Client):
         setup_command =    "CREATE TABLE IF NOT EXISTS Users (\
                             UID INT PRIMARY KEY,\
                             CoinCount INT(255),\
-                            TimeLastCoinsAwarded TEXT(512));"
+                            TimeLastCoinsAwarded TEXT(512),\
+                            TimeLastCoinsDeducted TEXT(512));"
         self.cursor.execute(setup_command)
         print(f'Now running as {self.user}...')
 
@@ -63,6 +64,8 @@ class MyClient(discord.Client):
             return await self.get_user_coins_response(message_string, user_message)
         elif '+1' in message_string:
             return await self.user_awards_user_with_coin(message_string, user_message)
+        elif '-1' in message_string:
+            return await self.user_deducts_user_coin(message_string, user_message)
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -71,10 +74,11 @@ class MyClient(discord.Client):
             # make a new list of the last times they gave a coin
             # initialize to all zeroes so the user can give x amount away at the start
             zeroes = [0] * coin_max
-            list_as_string = await self.convert_int_list_to_string_list(zeroes)
-            self.cursor.execute(f"INSERT OR IGNORE INTO Users (UID, CoinCount, TimeLastCoinsAwarded)\
-                VALUES ({user_uid}, 0, '{list_as_string}');")
+            coin_add_cd_list_as_string = await self.convert_int_list_to_string_list(zeroes)
+            coin_deduct_cd_list_as_string = await self.convert_int_list_to_string_list([0])
 
+            self.cursor.execute(f"INSERT OR IGNORE INTO Users (UID, CoinCount, TimeLastCoinsAwarded, TimeLastCoinsDeducted)\
+                VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_string}');")
 
     async def get_user_coins_response(self, message_string, user_message):
         user_uid = user_message.author.id
@@ -112,7 +116,7 @@ class MyClient(discord.Client):
                 0:'get your money up man.',
                 1:'you need to get a job, bum.',
                 2:'you are still broke, and a bum.',
-                3:'stil pooooor!!!!',
+                3:'still pooooor!!!! lol',
                 5:'it\'s better than nothing I guess.',
                 7:'you are moving up in zociety.',
                 10:'big money moves.',
@@ -150,11 +154,16 @@ class MyClient(discord.Client):
             time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
             return f'you must wait {time_remaining_str} until you can award another coin.'
         
-
+        
+        start_i = 0
+        target_uid = 0
         # find the first mentioned user in the program
-        start_i = message_string.index("<@") + 2
-        # the uid follows the format: <@18_digits_here>
-        target_uid = int(message_string[start_i: start_i + 18])
+        try:
+            start_i = message_string.index("<@") + 2
+            # the uid follows the format: <@18_digits_here>
+            target_uid = int(message_string[start_i: start_i + 18])
+        except Exception as e:
+            pass
 
         # check to make sure that a sure isn't giving a coin to themselves
         if user_uid == target_uid:
@@ -176,6 +185,60 @@ class MyClient(discord.Client):
         self.cursor.execute(query_replace_awarded_times)
 
         return f"you have given one coin to <@{target_uid}> how generous of you"
+
+    async def user_deducts_user_coin(self, message_string, user_message):
+        user_uid = user_message.author.id
+
+        # check if the time of user's oldest awarded coin 
+        query_get_coin_deducted_times = f"SELECT TimeLastCoinsDeducted FROM Users WHERE UID = {user_uid};"
+        self.cursor.execute(query_get_coin_deducted_times)
+        deducted_times = self.cursor.fetchone()[0]
+
+        if(deducted_times is None):
+            return 
+
+        time_list = await self.convert_string_list_to_int_list(deducted_times)
+        oldest_deducted = time_list[0]
+
+        # get current epoch time
+        curr_time = int(time.time())
+        # check if the user is not able to award a coin
+        if oldest_deducted + deducting_cooldown >= curr_time:
+            time_remaining_int = oldest_deducted + deducting_cooldown - curr_time
+            time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
+            return f'you must wait {time_remaining_str} until you can deduct another user\'s coins... why must your heart be so grey...'
+        
+        
+        start_i = 0
+        target_uid = 0
+        # find the first mentioned user in the program
+        try:
+            start_i = message_string.index("<@") + 2
+            # the uid follows the format: <@18_digits_here>
+            target_uid = int(message_string[start_i: start_i + 18])
+        except Exception as e:
+            pass
+
+        # check to make sure that a user isn't taking away a coin from themselves
+        if user_uid == target_uid:
+            return f"take a coin away from yourself? do you resent your state of being? are you okay?..."
+        
+        query_decrement_target_coins =    f"UPDATE Users\
+                                            SET CoinCount = CoinCount - 1\
+                                            WHERE UID = {target_uid};"
+
+        self.cursor.execute(query_decrement_target_coins)
+
+        # pop the first index off, then append the current time
+        time_list.pop(0)
+        time_list.append(curr_time)
+
+        # replace the value in the sql database
+        new_str_list_val = await self.convert_int_list_to_string_list(time_list)
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
+        self.cursor.execute(query_replace_awarded_times)
+
+        return f"you have taken away a coin from <@{target_uid}>... why must your heart be so evil..."
         
     async def is_message_for_bot(self, content):
         # check if command is ran
@@ -191,10 +254,15 @@ def main():
     global coin_max
     coin_max = 3
     
-    # the last award must be 
+    # an award must be at least a day after the oldest one, up to three
     global award_cooldown
     SECONDS_IN_ONE_DAY = 86400
     award_cooldown = SECONDS_IN_ONE_DAY
+
+    # 1 day cooldown for deducting a coin
+    global deducting_cooldown
+    deducting_cooldown = SECONDS_IN_ONE_DAY
+    
 
     # setup discord wrapper
     intents = discord.Intents.default()
