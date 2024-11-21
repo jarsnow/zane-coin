@@ -3,11 +3,22 @@ from dotenv import load_dotenv
 import os
 import sqlite3
 import time
+import datetime
 
 class MyClient(discord.Client):
 
     async def on_ready(self):
-        self.connection = sqlite3.connect("test_database.db")
+        self.zane = True
+        # isolation
+        self.connection = sqlite3.connect("user_info_database.db", isolation_level=None)
+        # auto commit things to the database
+        self.cursor = self.connection.cursor()
+        # setup database if it does not exist
+        setup_command =    "CREATE TABLE IF NOT EXISTS Users (\
+                            UID INT PRIMARY KEY,\
+                            CoinCount INT(255),\
+                            TimeLastCoinsAwarded TEXT(512));"
+        self.cursor.execute(setup_command)
         print(f'Now running as {self.user}...')
 
     async def on_message(self, message):
@@ -18,10 +29,12 @@ class MyClient(discord.Client):
         # check if the message is for the bot
         if not await self.is_message_for_bot(content):
             return
+
+        await self.add_user_to_database_if_not_in_users(author.id)
         
         # remove prefix
-        command = content[3:]
-
+        command = content[len(prefix) + 1:] # len('zc ') = len(prefix) + len of the space = 3
+        
         # get response from command
         bot_response = await self.get_response(command, message)
 
@@ -37,6 +50,7 @@ class MyClient(discord.Client):
     async def get_response(self, message_string, user_message):
         message_string = message_string.lower()
         
+        # TODO: reformat how these functions are called
         if 'hi' in message_string or 'hello' in message_string:
             return 'hello'
         elif 'bye' in message_string:
@@ -46,35 +60,122 @@ class MyClient(discord.Client):
         elif 'i love you' in message_string:
             return 'i love you too'
         elif 'check coins' in message_string:
+            return await self.get_user_coins_response(message_string, user_message)
+        elif '+1' in message_string:
+            return await self.user_awards_user_with_coin(message_string, user_message)
 
-            user_uid = user_message.author.id
-            
-            # connect to table
-            cursor = self.connection.cursor()
-            # get coin count from tables
-            cursor.execute("SELECT UID FROM USERS")
-            rows = cursor.fetchall()
-            for row in rows:
-                # check if uid is equal to user UID
-                if row[0] == user_uid:
-                    # get coin count
-                    cursor.execute(f"SELECT CoinCount from USERS WHERE UID = {user_uid}")
-                    new_rows = cursor.fetchone()
-                    coin_count = new_rows[0]
-                    
-                    return f'you have {coin_count} coins'
-        
-            # add user to db if they aren't in the table
-
-            # get epoch time in seconds
+    async def add_user_to_database_if_not_in_users(self, user_uid):
+        # get epoch time in seconds
             epoch_time = int(time.time())
-            cursor.execute(f"INSERT INTO USERS (UID, CoinCount, TimeLastCoinAwarded) VALUES ({user_uid}, 0, {epoch_time})")
-            self.connection.commit()
-            print(f"added user to db {user_uid}")
+            # store a new user into the database
+            # make a new list of the last times they gave a coin
+            # initialize to all zeroes so the user can give x amount away at the start
+            zeroes = [0] * coin_max
+            list_as_string = await self.convert_int_list_to_string_list(zeroes)
+            self.cursor.execute(f"INSERT OR IGNORE INTO Users (UID, CoinCount, TimeLastCoinsAwarded)\
+                VALUES ({user_uid}, 0, '{list_as_string}');")
 
-            return f'you have no coins lol, welcome though'
-        else:
-            return ""
+
+    async def get_user_coins_response(self, message_string, user_message):
+        user_uid = user_message.author.id
+            
+        # get coin count from tables
+        query_get_coin_by_uid = f"SELECT CoinCount FROM Users WHERE UID = {user_uid};"
+        self.cursor.execute(query_get_coin_by_uid)
+        # coins returns originally as a tuple, so take the first value to just get the integer value
+        coins = self.cursor.fetchone()[0]
+
+        # special case if coins is zero
+        if coins == 0:
+            return f'you have no coins... get your money up.'
+
+        # print normal output for users with more than one coin
+        # add flavor text to ending
+        flavor_text = await self.get_flavor_text_from_coin_count(coins)
+        return f'you have {coins} coin{"s" if coins != 0 else ""}. ' + flavor_text        
+    
+    async def convert_string_list_to_int_list(self, string_of_times):
+        # assume it is in "[(int),(int),(int)]" format
+        # return list of ints
+        return [int(x) for x in string_of_times.strip("[]'").split(",")]
+
+    async def convert_int_list_to_string_list(self, list_of_times):
+        # assume list of ints
+        # return string in "[(int),(int),(int)]" format
+
+        # remove beginning and ending brackets
+        return str(list_of_times)
+
+    async def get_flavor_text_from_coin_count(self, coin_count):
+        texts = {
+                -1:'you are deep in zebt. how did this happen',
+                0:'get your money up man.',
+                1:'you need to get a job, bum.',
+                2:'you are still broke, and a bum.',
+                3:'stil pooooor!!!!',
+                5:'it\'s better than nothing I guess.',
+                7:'you are moving up in zociety.',
+                10:'big money moves.',
+                15:'you are rich rich, time to buy zounter ztrike cases',
+                25:'you are a zane coin millionaire (zillionaire)'
+                }
+
+        # find the maximum value that the coin count rounds down to
+        for val in list(texts.keys()):
+            if coin_count <= val:
+                return texts[val]
+        
+        # return the last one if they are over the last case value
+        return list(texts.values())[-1]
+    
+    async def user_awards_user_with_coin(self, message_string, user_message):
+        user_uid = user_message.author.id
+
+        # check if the time of user's oldest awarded coin 
+        query_get_coin_awarded_times = f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        self.cursor.execute(query_get_coin_awarded_times)
+        awarded_times = self.cursor.fetchone()[0]
+
+        if(awarded_times is None):
+            return 
+
+        time_list = await self.convert_string_list_to_int_list(awarded_times)
+        oldest_awarded = time_list[0]
+
+        # get current epoch time
+        curr_time = int(time.time())
+        # check if the user is not able to award a coin
+        if oldest_awarded + award_cooldown >= curr_time:
+            time_remaining_int = oldest_awarded + award_cooldown - curr_time
+            time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
+            return f'you must wait {time_remaining_str} until you can award another coin.'
+        
+
+        # find the first mentioned user in the program
+        start_i = message_string.index("<@") + 2
+        # the uid follows the format: <@18_digits_here>
+        target_uid = int(message_string[start_i: start_i + 18])
+
+        # check to make sure that a sure isn't giving a coin to themselves
+        if user_uid == target_uid:
+            return f"you CANNOT give a coin to yourself... greedy bastard..."
+        
+        query_increment_target_coins =    f"UPDATE Users\
+                                            SET CoinCount = CoinCount + 1\
+                                            WHERE UID = {target_uid};"
+
+        self.cursor.execute(query_increment_target_coins)
+
+        # pop the first index off, then append the current time
+        time_list.pop(0)
+        time_list.append(curr_time)
+
+        # replace the value in the sql database
+        new_str_list_val = await self.convert_int_list_to_string_list(time_list)
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
+        self.cursor.execute(query_replace_awarded_times)
+
+        return f"you have given one coin to <@{target_uid}> how generous of you"
         
     async def is_message_for_bot(self, content):
         # check if command is ran
@@ -85,6 +186,15 @@ def main():
     # set bot prefix
     global prefix
     prefix = 'zc'
+
+    # set the maximum amount of coins you can hold onto
+    global coin_max
+    coin_max = 3
+    
+    # the last award must be 
+    global award_cooldown
+    SECONDS_IN_ONE_DAY = 86400
+    award_cooldown = SECONDS_IN_ONE_DAY
 
     # setup discord wrapper
     intents = discord.Intents.default()
