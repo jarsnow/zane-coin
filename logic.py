@@ -66,6 +66,8 @@ class MyClient(discord.Client):
             return await self.user_awards_user_with_coin(message_string, user_message)
         elif '-1' in message_string:
             return await self.user_deducts_user_coin(message_string, user_message)
+        elif 'rank' in message_string:
+            return await self.get_leaderboard_response(message_string, user_message)
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -165,6 +167,9 @@ class MyClient(discord.Client):
         except Exception as e:
             pass
 
+        # ensure the target user is in the database
+        await self.add_user_to_database_if_not_in_users(target_uid)
+
         # check to make sure that a sure isn't giving a coin to themselves
         if user_uid == target_uid:
             return f"you CANNOT give a coin to yourself... greedy bastard..."
@@ -184,7 +189,8 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        return f"you have given one coin to <@{target_uid}> how generous of you"
+        target_name = self.get_user_name(target_uid, user_message)
+        return f"you have given one coin to **{target_name}** how generous of you"
 
     async def user_deducts_user_coin(self, message_string, user_message):
         user_uid = user_message.author.id
@@ -219,6 +225,9 @@ class MyClient(discord.Client):
         except Exception as e:
             pass
 
+        # ensure the target user is in the database
+        await self.add_user_to_database_if_not_in_users(target_uid)
+
         # check to make sure that a user isn't taking away a coin from themselves
         if user_uid == target_uid:
             return f"take a coin away from yourself? do you resent your state of being? are you okay?..."
@@ -238,8 +247,48 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        return f"you have taken away a coin from <@{target_uid}>... why must your heart be so evil..."
+        target_name = self.get_user_name(target_uid, user_message)
+        return f"you have taken away a coin from **{target_name}**... why must your heart be so evil..."
+    
+    async def get_leaderboard_response(self, message_string, user_message):
+        user_uid = user_message.author.id
+
+        highest_least_shown = 3
+
+        query_get_uid_coins_descending = "SELECT UID, CoinCount\
+                                            FROM Users \
+                                            ORDER BY CoinCount DESC"
+
+        self.cursor.execute(query_get_uid_coins_descending)
+        results = self.cursor.fetchall()
+
+        # rare case that there's less than 6 people when called
+        if len(results) < highest_least_shown * 2:
+            return "no"
+
+        output = ""
+
+        # format leaderboard as
+        # 1. @jarsnow has 3 coins.
+        # 2. @notjarsnow has 2 coins.
+        # show top 3, bottom 3, and the calling user if they aren't in either of the three
+        for i, UID, CoinCount in enumerate(results[:highest_least_shown]):
+            target_name = self.get_user_name(UID, user_message)
+            output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
         
+        # bottom 3
+        for i, UID, CoinCount in enumerate(results[-highest_least_shown:]):
+            target_name = self.get_user_name(UID, user_message)
+            output += (f"{len(results) - i}. **{target_name}** has {CoinCount} coins. \n")
+
+        return output
+
+    async def get_user_name(self, UID, user_message):
+        guild = user_message.guild
+        member = await guild.fetch_member(UID)
+        name = member.name
+        return name
+
     async def is_message_for_bot(self, content):
         # check if command is ran
         return f"{prefix} " in content and content.index(f"{prefix} ") == 0
@@ -259,9 +308,9 @@ def main():
     SECONDS_IN_ONE_DAY = 86400
     award_cooldown = SECONDS_IN_ONE_DAY
 
-    # 1 day cooldown for deducting a coin
+    # 12 hr cooldown for deducting a coin
     global deducting_cooldown
-    deducting_cooldown = SECONDS_IN_ONE_DAY
+    deducting_cooldown = SECONDS_IN_ONE_DAY / 2
     
 
     # setup discord wrapper
