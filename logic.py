@@ -189,7 +189,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = self.get_user_name(target_uid, user_message)
+        target_name = await self.get_user_name(target_uid, user_message)
         return f"you have given one coin to **{target_name}** how generous of you"
 
     async def user_deducts_user_coin(self, message_string, user_message):
@@ -247,7 +247,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = self.get_user_name(target_uid, user_message)
+        target_name = await self.get_user_name(target_uid, user_message)
         return f"you have taken away a coin from **{target_name}**... why must your heart be so evil..."
     
     async def get_leaderboard_response(self, message_string, user_message):
