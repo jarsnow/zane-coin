@@ -4,6 +4,7 @@ import os
 import sqlite3
 import time
 import datetime
+from groq import Groq
 
 class MyClient(discord.Client):
 
@@ -68,6 +69,9 @@ class MyClient(discord.Client):
             return await self.user_deducts_user_coin(message_string, user_message)
         elif 'rank' in message_string:
             return await self.get_leaderboard_response(message_string, user_message)
+        elif 'tell' in message_string:
+            #return await self.get_groq_response(message_string, user_message)
+            pass
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -212,7 +216,7 @@ class MyClient(discord.Client):
         if oldest_deducted + deducting_cooldown >= curr_time:
             time_remaining_int = oldest_deducted + deducting_cooldown - curr_time
             time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
-            return f'you must wait {time_remaining_str} until you can deduct another user\'s coins... why must your heart be so grey...'
+            return f'you must wait {time_remaining_str} until you can deduct another user\'s coins... why must your heart be so gray...'
         
         
         start_i = 0
@@ -283,6 +287,20 @@ class MyClient(discord.Client):
 
         return output
 
+    async def get_groq_response(self, message_string, user_message):
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        
+        chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": message_string[4:], #TODO: change this
+            }
+        ],
+        model="llama3-8b-8192")
+
+        return chat_completion.choices[0].message.content
+
     async def get_user_name(self, UID, user_message):
         guild = user_message.guild
         member = await guild.fetch_member(UID)
@@ -292,8 +310,16 @@ class MyClient(discord.Client):
     async def is_message_for_bot(self, content):
         # check if command is ran
         return f"{prefix} " in content and content.index(f"{prefix} ") == 0
+    
+def setup():
+    # load discord token from .env file
+    load_dotenv()
+    global discord_token
+    discord_token = os.getenv('DISCORD_TOKEN')
 
-def main():
+    # load groq token from .env file
+    global groq_token
+    groq_token = os.getenv('GROQ_API_KEY')
 
     # set bot prefix
     global prefix
@@ -311,17 +337,20 @@ def main():
     # 12 hr cooldown for deducting a coin
     global deducting_cooldown
     deducting_cooldown = SECONDS_IN_ONE_DAY / 2
-    
+
+
+
+def main():
+
+    setup()
 
     # setup discord wrapper
     intents = discord.Intents.default()
     intents.message_content = True
     client = MyClient(intents=intents)
 
-    # load discord token from .env file
-    load_dotenv()
-    token = os.getenv('DISCORD_TOKEN')
-    client.run(token)
+    
+    client.run(discord_token)
 
 
 if __name__ == "__main__":
