@@ -274,7 +274,7 @@ class MyClient(discord.Client):
         # show top 3, bottom 3, and the calling user if they aren't in either of the three
         for i, result in enumerate(results[:highest_least_shown]):
             UID, CoinCount = result[0], result[1]
-            target_name = self.get_user_name(UID, user_message)
+            target_name = await self.get_user_name(UID, user_message)
             output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
         
         # bottom 3
