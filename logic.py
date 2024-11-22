@@ -4,7 +4,6 @@ import os
 import sqlite3
 import time
 import datetime
-from groq import Groq
 
 class MyClient(discord.Client):
 
@@ -69,9 +68,6 @@ class MyClient(discord.Client):
             return await self.user_deducts_user_coin(message_string, user_message)
         elif 'rank' in message_string:
             return await self.get_leaderboard_response(message_string, user_message)
-        elif 'tell' in message_string:
-            #return await self.get_groq_response(message_string, user_message)
-            pass
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -287,19 +283,19 @@ class MyClient(discord.Client):
 
         return output
 
-    async def get_groq_response(self, message_string, user_message):
-        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    # async def get_groq_response(self, message_string, user_message):
+    #     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         
-        chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": message_string[4:], #TODO: change this
-            }
-        ],
-        model="llama3-8b-8192")
+    #     chat_completion = client.chat.completions.create(
+    #     messages=[
+    #         {
+    #             "role": "user",
+    #             "content": message_string[4:], #TODO: change this
+    #         }
+    #     ],
+    #     model="llama3-8b-8192")
 
-        return chat_completion.choices[0].message.content
+    #     return chat_completion.choices[0].message.content
 
     async def get_user_name(self, UID, user_message):
         guild = user_message.guild
