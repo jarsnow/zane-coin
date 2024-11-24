@@ -51,7 +51,7 @@ class MyClient(discord.Client):
         message_string = message_string.lower()
         
         # zane coin bot doesn't like getting pinged
-        if f"<@{this_bot_uid}" in content:
+        if f"<@{this_bot_uid}" in message_string:
             return "don't ping me"
 
         commands = {
@@ -62,10 +62,10 @@ class MyClient(discord.Client):
         }
 
         # get the command by the first string of the message
-        user_command = message_string.split(" ")
+        user_command = message_string.split(" ")[0]
         
         # command cannot be found
-        if user_command not in commands.keys():
+        if user_command not in list(commands.keys()):
             return "what?"
         
         command_to_run = commands[user_command]
