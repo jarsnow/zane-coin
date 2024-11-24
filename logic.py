@@ -281,8 +281,7 @@ class MyClient(discord.Client):
         for i, result in enumerate(results[-highest_least_shown:]):
             UID, CoinCount = result[0], result[1]
             target_name = await self.get_user_name(UID, user_message)
-            output += (f"{len(results) - highest_least_shown + i}. {target_name} has {CoinCount} coins. \n")
-            #output += (f"{len(results) - i}. **{target_name}** has {CoinCount} coins. \n")
+            output += (f"{len(results) - i}. **{target_name}** has {CoinCount} coins. \n")
 
         return output
 
