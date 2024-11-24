@@ -133,6 +133,9 @@ class MyClient(discord.Client):
         
         # return the last one if they are over the last case value
         return list(texts.values())[-1]
+
+    async def get_coin_count_from_user_id(self, UID):
+        pass
     
     async def user_awards_user_with_coin(self, message_string, user_message):
         user_uid = user_message.author.id
@@ -253,7 +256,7 @@ class MyClient(discord.Client):
     async def get_leaderboard_response(self, message_string, user_message):
         user_uid = user_message.author.id
 
-        highest_least_shown = 3
+        highest_least_shown = 5
 
         query_get_uid_coins_descending = "SELECT UID, CoinCount\
                                             FROM Users \
@@ -271,17 +274,20 @@ class MyClient(discord.Client):
         # format leaderboard as
         # 1. @jarsnow has 3 coins.
         # 2. @notjarsnow has 2 coins.
-        # show top 3, bottom 3, and the calling user if they aren't in either of the three
-        for i, result in enumerate(results[:highest_least_shown]):
+        # show top, bottom, and the calling user if they aren't in either of the three
+        output += f"the top {highest_least_shown} players in zociety:\n"
+        for i, result in enumerate(results):
             UID, CoinCount = result[0], result[1]
             target_name = await self.get_user_name(UID, user_message)
             output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
         
-        # bottom 3
+        output += "...\n"
+        output += f"the bottom {highest_least_shown} brokest server members:\n"
+        # bottom count
         for i, result in enumerate(results[-highest_least_shown:]):
             UID, CoinCount = result[0], result[1]
             target_name = await self.get_user_name(UID, user_message)
-            output += (f"{len(results) - i}. **{target_name}** has {CoinCount} coins. \n")
+            output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
 
         return output
 
