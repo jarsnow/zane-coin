@@ -58,7 +58,8 @@ class MyClient(discord.Client):
             "balance" : self.get_user_coins_response,
             "+1" : self.user_awards_user_with_coin,
             "-1" : self.user_deducts_user_coin,
-            "rank" : self.get_leaderboard_response
+            "rank" : self.get_leaderboard_response,
+            "status" : self.get_status_response
         }
 
         # get the command by the first string of the message
@@ -301,6 +302,49 @@ class MyClient(discord.Client):
             output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
 
         return output
+    
+    async def get_status_response(self, message_string, user_message): 
+        user_uid = user_message.author.id
+
+        # get the timers for users 
+        query_get_coin_awarded_times = f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        self.cursor.execute(query_get_coin_awarded_times)
+        awarded_times = self.cursor.fetchone()[0]
+
+        if(awarded_times is None):
+            return
+
+        time_list = await self.convert_string_list_to_int_list(awarded_times)
+        curr_time = int(time.time())
+        HOUR_IN_SECONDS = 60 * 60
+        
+        # let the user view the cooldown for awarding a coin
+        # format is
+        #coin1 cooldown: 12:02:04 [############------------]
+        #coin2 cooldown: READY
+        result = ""
+        for i, time_value in enumerate(time_list):
+            result += f"Coin {i+ 1} Cooldown: "
+            seconds_remaining = time_value + award_cooldown - curr_time 
+            print(seconds_remaining)
+            if (seconds_remaining <= 0):
+                result += "READY"
+            else:
+                # add time remaining
+                time_remaining_str = str(datetime.timedelta(seconds=seconds_remaining))
+                result += time_remaining_str + " | "
+                # add loading bar
+                # add one tag for each hour increment 
+                num_left = seconds_remaining // HOUR_IN_SECONDS + 1
+                # cap to 24 hashtags
+                num_left = 24 if num_left > 24 else num_left
+                result += "["
+                result += "=" * (24 - num_left)
+                result += "-" * num_left
+                result += "]"
+            result += "\n"
+
+        return result
 
     # async def get_groq_response(self, message_string, user_message):
     #     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
