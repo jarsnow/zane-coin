@@ -279,7 +279,7 @@ class MyClient(discord.Client):
         # 2. @notjarsnow has 2 coins.
         # show top, bottom, and the calling user if they aren't in either of the three
         output += f"the top {highest_least_shown} players in zociety:\n"
-        for i, result in enumerate(results):
+        for i, result in enumerate(results[:highest_least_shown]):
             UID, CoinCount = result[0], result[1]
             target_name = ""
             try:
