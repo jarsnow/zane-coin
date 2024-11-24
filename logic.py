@@ -281,7 +281,11 @@ class MyClient(discord.Client):
         output += f"the top {highest_least_shown} players in zociety:\n"
         for i, result in enumerate(results):
             UID, CoinCount = result[0], result[1]
-            target_name = await self.get_user_name(UID, user_message)
+            target_name = ""
+            try:
+                target_name = await self.get_user_name(UID, user_message)
+            except Exception as e:
+                target_name = "idk who this is"
             output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
         
         output += "...\n"
@@ -289,7 +293,11 @@ class MyClient(discord.Client):
         # bottom count
         for i, result in enumerate(results[-highest_least_shown:]):
             UID, CoinCount = result[0], result[1]
-            target_name = await self.get_user_name(UID, user_message)
+            target_name = ""
+            try:
+                target_name = await self.get_user_name(UID, user_message)
+            except Exception as e:
+                target_name = "idk who this is"     
             output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
 
         return output
