@@ -8,7 +8,6 @@ import datetime
 class MyClient(discord.Client):
 
     async def on_ready(self):
-        self.zane = True
         # isolation
         self.connection = sqlite3.connect("user_info_database.db", isolation_level=None)
         # auto commit things to the database
@@ -40,7 +39,7 @@ class MyClient(discord.Client):
         bot_response = await self.get_response(command, message)
 
         await self.send_message(bot_response, message)
-
+    
     async def send_message(self, bot_response, message):
         # don't send anything if the bot has nothing to say
         if not bot_response:
@@ -51,23 +50,27 @@ class MyClient(discord.Client):
     async def get_response(self, message_string, user_message):
         message_string = message_string.lower()
         
-        # TODO: reformat how these functions are called
-        if 'hi' in message_string or 'hello' in message_string:
-            return 'hello'
-        elif 'bye' in message_string:
-            return 'bye'
-        elif 'gn' in message_string or 'good night' in message_string:
-            return 'sweet dreams my love'
-        elif 'i love you' in message_string:
-            return 'i love you too'
-        elif 'check coins' in message_string:
-            return await self.get_user_coins_response(message_string, user_message)
-        elif '+1' in message_string:
-            return await self.user_awards_user_with_coin(message_string, user_message)
-        elif '-1' in message_string:
-            return await self.user_deducts_user_coin(message_string, user_message)
-        elif 'rank' in message_string:
-            return await self.get_leaderboard_response(message_string, user_message)
+        # zane coin bot doesn't like getting pinged
+        if f"<@{this_bot_uid}" in content:
+            return "don't ping me"
+
+        commands = {
+            "balance" : self.get_user_coins_response,
+            "+1" : self.user_awards_user_with_coin,
+            "-1" : self.user_deducts_user_coin,
+            "rank" : self.get_leaderboard_response
+        }
+
+        # get the command by the first string of the message
+        user_command = message_string.split(" ")
+        
+        # command cannot be found
+        if user_command not in commands.keys():
+            return "what?"
+        
+        command_to_run = commands[user_command]
+
+        return await command_to_run(message_string, user_message)
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -324,6 +327,10 @@ def setup():
     # load groq token from .env file
     global groq_token
     groq_token = os.getenv('GROQ_API_KEY')
+    
+    # used for quip
+    global this_bot_uid
+    this_bot_uid = os.getenv('BOT_UID')
 
     # set bot prefix
     global prefix
@@ -332,7 +339,7 @@ def setup():
     # set the maximum amount of coins you can hold onto
     global coin_max
     coin_max = 3
-    
+
     # an award must be at least a day after the oldest one, up to three
     global award_cooldown
     SECONDS_IN_ONE_DAY = 86400
