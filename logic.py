@@ -326,7 +326,6 @@ class MyClient(discord.Client):
         for i, time_value in enumerate(time_list):
             result += f"Coin {i+ 1} Cooldown: "
             seconds_remaining = time_value + award_cooldown - curr_time 
-            print(seconds_remaining)
             if (seconds_remaining <= 0):
                 result += "READY"
             else:
