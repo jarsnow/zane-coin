@@ -27,7 +27,7 @@ class MyClient(discord.Client):
         channel = message.channel
 
         # check if the message is for the bot
-        if not await self.is_message_for_bot(content):
+        if not await self.is_message_for_bot(content, channel):
             return
 
         await self.add_user_to_database_if_not_in_users(author.id)
@@ -365,9 +365,9 @@ class MyClient(discord.Client):
         name = member.name
         return name
 
-    async def is_message_for_bot(self, content):
+    async def is_message_for_bot(self, content, channel):
         # check if command is ran
-        return f"{prefix} " in content and content.index(f"{prefix} ") == 0
+        return f"{prefix} " in content and content.index(f"{prefix} ") == 0 and channel.id == usable_channel_id
     
 def setup():
     # load discord token from .env file
@@ -382,6 +382,9 @@ def setup():
     # used for quip
     global this_bot_uid
     this_bot_uid = os.getenv('BOT_UID')
+    
+    global usable_channel_id
+    usable_channel_id = os.getenv('CHANNEL_ID')
 
     # set bot prefix
     global prefix
