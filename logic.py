@@ -381,10 +381,10 @@ def setup():
     
     # used for quip
     global this_bot_uid
-    this_bot_uid = os.getenv('BOT_UID')
+    this_bot_uid = int(os.getenv('BOT_UID'))
     
     global usable_channel_id
-    usable_channel_id = os.getenv('CHANNEL_ID')
+    usable_channel_id = int(os.getenv('CHANNEL_ID'))
 
     # set bot prefix
     global prefix
