@@ -4,6 +4,7 @@ import os
 import sqlite3
 import time
 import datetime
+import random
 
 class MyClient(discord.Client):
 
@@ -59,7 +60,9 @@ class MyClient(discord.Client):
             "+1" : self.user_awards_user_with_coin,
             "-1" : self.user_deducts_user_coin,
             "rank" : self.get_leaderboard_response,
-            "status" : self.get_status_response
+            "status" : self.get_status_response,
+            "coinflip" : self.coinflip,
+            "smite" : self.debug
         }
 
         # get the command by the first string of the message
@@ -117,7 +120,7 @@ class MyClient(discord.Client):
         texts = {
                 -1:'you are deep in zebt. how did this happen',
                 0:'get your money up man.',
-                1:'you need to get a job, bum.',
+                1:'youi need to get a job, bum.',
                 2:'you are still broke, and a bum.',
                 3:'still pooooor!!!! lol',
                 5:'it\'s better than nothing I guess.',
@@ -135,6 +138,47 @@ class MyClient(discord.Client):
         # return the last one if they are over the last case value
         return list(texts.values())[-1]
 
+    async def coinflip(self, message_string, user_message):
+        uid = user_message.author.id
+
+        coins = await self.get_coin_count_from_uid(uid)
+
+        if coins <= 0:
+            return f"you cannot gamble with {coins} coins LMAOO"
+
+        args = []
+        wager = 0
+        user_choice = ""
+        # check user input
+        try:
+            # remove the 'zc'
+            args = message_string.split(" ")[1:]
+            wager = int(args[0])
+            user_choice = args[1]
+        except Exception as e:
+            print(e)
+            return "stop gambling"
+        
+        # check user input again
+        if not(user_choice == "heads" or user_choice == "tails"):
+            return "pick heads or tails man"
+
+        if wager <= 0:
+            return "you can't wager less than or equal to zero coins..."
+
+        if wager > coins:
+            return "you do NOT have that many coins to wager..."
+
+        bot_choice = "heads" if random.randint(0,1) == 0 else "tails"
+        
+        if bot_choice == user_choice:
+            # add coins
+            await self.change_user_coins_by_num(uid, wager)
+            return f"I flipped a **{bot_choice}**, and you've WON {wager}... you're at {coins + wager} coins now..."
+        else:
+            await self.change_user_coins_by_num(uid, -1 * wager)
+            return f"I flipped a **{bot_choice}**... you LOST {wager}... you're at {coins - wager} currently now.."
+
     async def get_coin_count_from_uid(self, UID):
         get_coin_query = f"SELECT CoinCount FROM Users WHERE UID = {UID}"
         self.cursor.execute(get_coin_query)
@@ -142,10 +186,29 @@ class MyClient(discord.Client):
 
     async def change_user_coins_by_num(self, uid, change):
         query_decrement_target_coins =    f"UPDATE Users\
-                                            SET CoinCount = CoinCount - 1\
+                                            SET CoinCount = CoinCount + {change}\
                                             WHERE UID = {uid};"
 
         self.cursor.execute(query_decrement_target_coins)
+
+    async def set_user_coins_by_num(self, uid, num):
+        query_decrement_target_coins =    f"UPDATE Users\
+                                            SET CoinCount = {num}\
+                                            WHERE UID = {uid};"
+
+        self.cursor.execute(query_decrement_target_coins)
+
+    async def debug(self, message_string, user_message):
+        uid = user_message.author.id
+        if uid != mod_uid:
+            return "nice try lol"
+        
+        print(message_string)
+        args = message_string.strip().split(" ")[1:]
+        target = int(args[0])
+        count = int(args[1])
+
+        await self.set_user_coins_by_num(target, count) 
 
     async def user_awards_user_with_coin(self, message_string, user_message):
         user_uid = user_message.author.id
@@ -187,7 +250,7 @@ class MyClient(discord.Client):
         if user_uid == target_uid:
             return f"you CANNOT give a coin to yourself... greedy bastard..."
         
-        self.change_user_coins_by_num(target_uid, -1)
+        await self.change_user_coins_by_num(target_uid, 1)
 
         # pop the first index off, then append the current time
         time_list.pop(0)
@@ -371,6 +434,9 @@ def setup():
     
     global usable_channel_id
     usable_channel_id = int(os.getenv('CHANNEL_ID'))
+
+    global mod_uid
+    mod_uid = int(os.getenv('MOD_UID'))
 
     # set bot prefix
     global prefix
