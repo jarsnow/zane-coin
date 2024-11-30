@@ -90,10 +90,7 @@ class MyClient(discord.Client):
         user_uid = user_message.author.id
             
         # get coin count from tables
-        query_get_coin_by_uid = f"SELECT CoinCount FROM Users WHERE UID = {user_uid};"
-        self.cursor.execute(query_get_coin_by_uid)
-        # coins returns originally as a tuple, so take the first value to just get the integer value
-        coins = self.cursor.fetchone()[0]
+        coins = await self.get_coin_count_from_uid(user_uid)
 
         # special case if coins is zero
         if coins == 0:
@@ -138,9 +135,18 @@ class MyClient(discord.Client):
         # return the last one if they are over the last case value
         return list(texts.values())[-1]
 
-    async def get_coin_count_from_user_id(self, UID):
-        pass
-    
+    async def get_coin_count_from_uid(self, UID):
+        get_coin_query = f"SELECT CoinCount FROM Users WHERE UID = {UID}"
+        self.cursor.execute(get_coin_query)
+        return int(self.cursor.fetchone()[0])
+
+    async def change_user_coins_by_num(self, uid, change):
+        query_decrement_target_coins =    f"UPDATE Users\
+                                            SET CoinCount = CoinCount - 1\
+                                            WHERE UID = {uid};"
+
+        self.cursor.execute(query_decrement_target_coins)
+
     async def user_awards_user_with_coin(self, message_string, user_message):
         user_uid = user_message.author.id
 
@@ -181,11 +187,7 @@ class MyClient(discord.Client):
         if user_uid == target_uid:
             return f"you CANNOT give a coin to yourself... greedy bastard..."
         
-        query_increment_target_coins =    f"UPDATE Users\
-                                            SET CoinCount = CoinCount + 1\
-                                            WHERE UID = {target_uid};"
-
-        self.cursor.execute(query_increment_target_coins)
+        self.change_user_coins_by_num(target_uid, -1)
 
         # pop the first index off, then append the current time
         time_list.pop(0)
@@ -238,12 +240,9 @@ class MyClient(discord.Client):
         # check to make sure that a user isn't taking away a coin from themselves
         if user_uid == target_uid:
             return f"take a coin away from yourself? do you resent your state of being? are you okay?..."
-        
-        query_decrement_target_coins =    f"UPDATE Users\
-                                            SET CoinCount = CoinCount - 1\
-                                            WHERE UID = {target_uid};"
 
-        self.cursor.execute(query_decrement_target_coins)
+
+        await self.change_user_coins_by_num(target_uid, -1)
 
         # pop the first index off, then append the current time
         time_list.pop(0)
@@ -344,20 +343,7 @@ class MyClient(discord.Client):
             result += "\n"
 
         return result
-
-    # async def get_groq_response(self, message_string, user_message):
-    #     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-        
-    #     chat_completion = client.chat.completions.create(
-    #     messages=[
-    #         {
-    #             "role": "user",
-    #             "content": message_string[4:], #TODO: change this
-    #         }
-    #     ],
-    #     model="llama3-8b-8192")
-
-    #     return chat_completion.choices[0].message.content
+    
 
     async def get_user_name(self, UID, user_message):
         guild = user_message.guild
@@ -367,7 +353,7 @@ class MyClient(discord.Client):
 
     async def is_message_for_bot(self, content, channel):
         # check if command is ran
-        return f"{prefix} " in content and content.index(f"{prefix} ") == 0 and channel.id == usable_channel_id
+        return f"{prefix} " in content.lower() and content.index(f"{prefix} ") == 0 and channel.id == usable_channel_id
     
 def setup():
     # load discord token from .env file
