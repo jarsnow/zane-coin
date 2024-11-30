@@ -156,7 +156,6 @@ class MyClient(discord.Client):
             wager = int(args[0])
             user_choice = args[1]
         except Exception as e:
-            print(e)
             return "stop gambling"
         
         # check user input again
