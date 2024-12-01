@@ -75,6 +75,9 @@ class MyClient(discord.Client):
         # formatting
         command_to_run = commands[user_command]
         command_out = await command_to_run(message_string, user_message)
+        # end early if there's no message
+        if command_out is None:
+            return
         uid = user_message.author.id
         name = await self.get_username_from_uid(uid, user_message)
         out = f"**{name}:\n**" + command_out
@@ -362,7 +365,7 @@ class MyClient(discord.Client):
             UID, CoinCount = result[0], result[1]
             target_name = ""
             try:
-                target_name = await self.get_username_from_uid(UID)
+                target_name = await self.get_username_from_uid(UID, user_message)
             except Exception as e:
                 target_name = "idk who this is"     
             output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
