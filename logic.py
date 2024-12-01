@@ -72,9 +72,13 @@ class MyClient(discord.Client):
         if user_command not in list(commands.keys()):
             return "what?"
         
+        # formatting
         command_to_run = commands[user_command]
-
-        return await command_to_run(message_string, user_message)
+        command_out = await command_to_run(message_string, user_message)
+        uid = user_message.author.id
+        name = await self.get_username_from_uid(uid, user_message)
+        out = f"**{name}:\n**" + command_out
+        return out
 
     async def add_user_to_database_if_not_in_users(self, user_uid):
         # get epoch time in seconds
@@ -260,7 +264,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = await self.get_user_name(target_uid, user_message)
+        target_name = await self.get_username_from_uid(target_uid)
         return f"you have given one coin to **{target_name}** how generous of you"
 
     async def user_deducts_user_coin(self, message_string, user_message):
@@ -315,7 +319,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = await self.get_user_name(target_uid, user_message)
+        target_name = await self.get_username_from_uid(target_uid)
         return f"you have taken away a coin from **{target_name}**... why must your heart be so evil..."
     
     async def get_leaderboard_response(self, message_string, user_message):
@@ -345,7 +349,7 @@ class MyClient(discord.Client):
             UID, CoinCount = result[0], result[1]
             target_name = ""
             try:
-                target_name = await self.get_user_name(UID, user_message)
+                target_name = await self.get_username_from_uid(UID)
             except Exception as e:
                 target_name = "idk who this is"
             output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
@@ -357,7 +361,7 @@ class MyClient(discord.Client):
             UID, CoinCount = result[0], result[1]
             target_name = ""
             try:
-                target_name = await self.get_user_name(UID, user_message)
+                target_name = await self.get_username_from_uid(UID)
             except Exception as e:
                 target_name = "idk who this is"     
             output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
@@ -407,7 +411,7 @@ class MyClient(discord.Client):
         return result
     
 
-    async def get_user_name(self, UID, user_message):
+    async def get_username_from_uid(self, UID, user_message):
         guild = user_message.guild
         member = await guild.fetch_member(UID)
         name = member.name
@@ -415,7 +419,8 @@ class MyClient(discord.Client):
 
     async def is_message_for_bot(self, content, channel):
         # check if command is ran
-        return f"{prefix} " in content.lower() and content.index(f"{prefix} ") == 0 and channel.id == usable_channel_id
+        content = content.lower()
+        return f"{prefix} " in content and content.index(f"{prefix} ") == 0 and channel.id == usable_channel_id
     
 def setup():
     # load discord token from .env file
