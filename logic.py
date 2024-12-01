@@ -354,7 +354,6 @@ class MyClient(discord.Client):
             try:
                 target_name = await self.get_username_from_uid(UID, user_message)
             except Exception as e:
-                print(e)
                 target_name = "idk who this is"
             output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
         
