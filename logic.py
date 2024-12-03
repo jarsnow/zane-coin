@@ -111,6 +111,23 @@ class MyClient(discord.Client):
         flavor_text = await self.get_flavor_text_from_coin_count(coins)
         return f'you have {coins} coin{"s" if coins != 0 else ""}. ' + flavor_text        
     
+    async def get_uids_from_message_string(self, message_str):
+        uids = []
+
+        while ("<@") in message_str:
+            # remove everything to the left of the <@, including the <@
+            index = message_str.index("<@")
+            message_str = message_str[index + 2:]
+            # uids are length 18
+            uid = 0
+            try:
+                uid = int(message_str[:18])
+            except:
+                break
+            
+            uids.append(uid)
+
+        return uids
     async def convert_string_list_to_int_list(self, string_of_times):
         # assume it is in "[(int),(int),(int)]" format
         # return list of ints
@@ -209,11 +226,19 @@ class MyClient(discord.Client):
         if uid != mod_uid:
             return "nice try lol"
         
-        args = message_string.strip().split(" ")[1:]
-        target = int(args[0])
+
+        # get uids
+        uids = await self.get_uids_from_message_string(message_string)
+        target_uid = uids[0]
+
+        args = message_string.strip().split(" ")[1:] # skip the zc
         count = int(args[1])
 
-        await self.set_user_coins_by_num(target, count) 
+        await self.set_user_coins_by_num(target_uid, count)
+
+        name = await self.get_username_from_uid(target_uid, message_string)
+        
+        return f"**{name}** now has {count} coins... truly an act of zod"
 
     async def user_awards_user_with_coin(self, message_string, user_message):
         user_uid = user_message.author.id
@@ -238,15 +263,9 @@ class MyClient(discord.Client):
             return f'you must wait {time_remaining_str} until you can award another coin.'
         
         
-        start_i = 0
-        target_uid = 0
-        # find the first mentioned user in the program
-        try:
-            start_i = message_string.index("<@") + 2
-            # the uid follows the format: <@18_digits_here>
-            target_uid = int(message_string[start_i: start_i + 18])
-        except Exception as e:
-            pass
+        # get uids
+        uids = await self.get_uids_from_message_string(message_string)
+        target_uid = uids[0]
 
         # ensure the target user is in the database
         await self.add_user_to_database_if_not_in_users(target_uid)
@@ -255,7 +274,6 @@ class MyClient(discord.Client):
         if user_uid == target_uid:
             return f"you CANNOT give a coin to yourself... greedy bastard..."
         
-        await self.change_user_coins_by_num(target_uid, 1)
 
         # pop the first index off, then append the current time
         time_list.pop(0)
@@ -265,8 +283,17 @@ class MyClient(discord.Client):
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
-
+        
         target_name = await self.get_username_from_uid(target_uid, user_message)
+        
+        # random chance for +1 to be +10
+        if random.random() < lucky_chance:
+            await self.change_user_coins_by_num(target_uid, 10)
+            await self.change_user_coins_by_num(user_uid, 2)
+            return f"you have given... TEN COINS! TO **{target_name}** WOW!! SO LUCKY AND GENEROUS!\n\
+            YOU GET TWO COINS FOR YOURSELF TOO! WOOHOO!"
+
+        await self.change_user_coins_by_num(target_uid, 1)
         return f"you have given one coin to **{target_name}** how generous of you"
 
     async def user_deducts_user_coin(self, message_string, user_message):
@@ -291,16 +318,10 @@ class MyClient(discord.Client):
             time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
             return f'you must wait {time_remaining_str} until you can deduct another user\'s coins... why must your heart be so gray...'
         
-        
-        start_i = 0
-        target_uid = 0
-        # find the first mentioned user in the program
-        try:
-            start_i = message_string.index("<@") + 2
-            # the uid follows the format: <@18_digits_here>
-            target_uid = int(message_string[start_i: start_i + 18])
-        except Exception as e:
-            pass
+                
+        # get uids
+        uids = await self.get_uids_from_message_string(message_string)
+        target_uid = uids[0]
 
         # ensure the target user is in the database
         await self.add_user_to_database_if_not_in_users(target_uid)
@@ -310,7 +331,6 @@ class MyClient(discord.Client):
             return f"take a coin away from yourself? do you resent your state of being? are you okay?..."
 
 
-        await self.change_user_coins_by_num(target_uid, -1)
 
         # pop the first index off, then append the current time
         time_list.pop(0)
@@ -320,8 +340,17 @@ class MyClient(discord.Client):
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
-
+        
         target_name = await self.get_username_from_uid(target_uid, user_message)
+        # I guess this is unlucky
+        if random.random() < lucky_chance:
+            # take 5 away from the caller, give 3 to target
+            await self.change_user_coins_by_num(user_uid, -5)
+            await self.change_user_coins_by_num(target_uid, 3)
+            return f"WOW you are so rude... you have been FINED **FIVE** of *YOUR* COINS!\n\
+                    I will have mercy on **{target_name}** and give them three coins instead..."
+        
+        await self.change_user_coins_by_num(target_uid, -1)
         return f"you have taken away a coin from **{target_name}**... why must your heart be so evil..."
     
     async def get_leaderboard_response(self, message_string, user_message):
@@ -460,7 +489,10 @@ def setup():
     # 12 hr cooldown for deducting a coin
     global deducting_cooldown
     deducting_cooldown = SECONDS_IN_ONE_DAY / 2
-
+    
+    # set chance for +1 to be a +10 instead
+    global lucky_chance
+    lucky_chance = 0.05
 
 
 def main():
