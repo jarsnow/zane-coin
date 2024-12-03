@@ -236,7 +236,7 @@ class MyClient(discord.Client):
 
         await self.set_user_coins_by_num(target_uid, count)
 
-        name = await self.get_username_from_uid(target_uid, message_string)
+        name = await self.get_username_from_uid(target_uid, user_message)
         
         return f"**{name}** now has {count} coins... truly an act of zod"
 
