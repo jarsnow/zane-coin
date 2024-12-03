@@ -360,7 +360,8 @@ class MyClient(discord.Client):
 
         query_get_uid_coins_descending = "SELECT UID, CoinCount\
                                             FROM Users \
-                                            ORDER BY CoinCount DESC"
+                                            ORDER BY CoinCount DESC \
+                                            LIMIT 5;"
 
         self.cursor.execute(query_get_uid_coins_descending)
         results = self.cursor.fetchall()
@@ -387,6 +388,14 @@ class MyClient(discord.Client):
         
         output += "...\n"
         output += f"the bottom {highest_least_shown} brokest server members:\n"
+
+        query_get_uid_coins_asc = "SELECT UID, CoinCount\
+                                            FROM Users \
+                                            ORDER BY CoinCount ASC\
+                                            LIMIT 5;"
+
+        self.cursor.execute(query_get_uid_coins_asc)
+        results = self.cursor.fetchall()
         # bottom count
         for i, result in enumerate(results[-highest_least_shown:]):
             UID, CoinCount = result[0], result[1]
@@ -394,7 +403,7 @@ class MyClient(discord.Client):
             try:
                 target_name = await self.get_username_from_uid(UID, user_message)
             except Exception as e:
-                target_name = "idk who this is"     
+                target_name = "(probably some bot)"     
             output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
 
         return output
