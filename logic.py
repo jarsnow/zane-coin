@@ -367,7 +367,7 @@ class MyClient(discord.Client):
         results = self.cursor.fetchall()
 
         # rare case that there's less than 6 people when called
-        if len(results) < highest_least_shown * 2:
+        if len(results) < highest_least_shown:
             return "no"
 
         output = ""
