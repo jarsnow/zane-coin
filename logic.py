@@ -62,7 +62,7 @@ class MyClient(discord.Client):
             "rank" : self.get_leaderboard_response,
             "status" : self.get_status_response,
             "coinflip" : self.coinflip,
-            "smite" : self.debug
+            "bless" : self.debug
         }
 
         # get the command by the first string of the message
@@ -209,7 +209,6 @@ class MyClient(discord.Client):
         if uid != mod_uid:
             return "nice try lol"
         
-        print(message_string)
         args = message_string.strip().split(" ")[1:]
         target = int(args[0])
         count = int(args[1])
@@ -267,7 +266,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = await self.get_username_from_uid(target_uid)
+        target_name = await self.get_username_from_uid(target_uid, user_message)
         return f"you have given one coin to **{target_name}** how generous of you"
 
     async def user_deducts_user_coin(self, message_string, user_message):
@@ -322,7 +321,7 @@ class MyClient(discord.Client):
         query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
-        target_name = await self.get_username_from_uid(target_uid)
+        target_name = await self.get_username_from_uid(target_uid, user_message)
         return f"you have taken away a coin from **{target_name}**... why must your heart be so evil..."
     
     async def get_leaderboard_response(self, message_string, user_message):
