@@ -413,7 +413,7 @@ but you only have {coins} coins'
             self.cursor.execute(update_query)
 
         # get user's balance after purchase
-        new_balance = await self.get_user_coins_response(user_uid)
+        new_balance = await self.get_user_coins_response(message_string, user_message)
 
         return f'you have sucessfully bought {share_count} shares \
 of {ticker_name}, you now have {new_count} shares and {new_balance} coins.\n\
