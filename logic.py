@@ -201,7 +201,7 @@ reset_cd [user]     also not for you lol
         for share in owned_shares:
             ticker_name, share_count = share[0], round(float(share[1]), 2)
             share_price = await self.get_share_price_from_name_amount(ticker_name, share_count)
-            share_price = int(share_price) - 1
+            share_price = int(share_price)
 
             total_share_value += share_price
 
@@ -354,16 +354,16 @@ you now have {new_bal} coins'
         price = 999999
         try:
             price = await self.get_share_price_from_name_amount(ticker_name, share_count)
-        except Exception:
+        except Exception as e:
             # something went wrong, probably incorrect ticker name
+            print(e)
             return 'what :zquestion: recheck your message and try again bro :zunshaven: :zunshaven:'
 
         # check balance of the user
         coins = await self.get_coin_count_from_uid(user_uid)
 
         # can't buy if you don't have the cash
-        price = int(price) + 1
-        price = int(price) + 1
+        price = int(price)
         if coins < price:
             return f'mane you are broke broke, you need {price} coins,\
 but you only have {coins} coins'
@@ -412,8 +412,8 @@ but you only have {coins} coins'
             # add user share into db
             self.cursor.execute(update_query)
 
-            # get user's balance after purchase
-            new_balance = await self.get_user_coins_response(user_uid)
+        # get user's balance after purchase
+        new_balance = await self.get_user_coins_response(user_uid)
 
         return f'you have sucessfully bought {share_count} shares \
 of {ticker_name}, you now have {new_count} shares and {new_balance} coins.\n\
@@ -459,7 +459,7 @@ may luck be in your favor.'
             price = await self.get_share_price_from_name_amount(ticker_name, share_count)
 
             # price rounding
-            price = int(price) - 1
+            price = int(price)
         except Exception:
             # something went wrong, probably incorrect ticker name
             return 'what :zquestion: recheck your message and try again bro :zunshaven: :zunshaven:'
@@ -510,7 +510,7 @@ you now have {new_count} shares and {new_balance} coins.'
             return 'something went wrong, check the ticker name and try again :zunshaven:'
 
         # round share_price
-        share_price = int(share_price) + 1
+        share_price = int(share_price)
 
         output_str = f'the price for {share_count} shares of {ticker_name} is {share_price} zane coins'
 
@@ -522,7 +522,7 @@ you now have {new_count} shares and {new_balance} coins.'
         if ticker_price is None:
             raise Exception
 
-        share_price = ticker_price * amount + 1
+        share_price = ticker_price * amount
 
         return round(share_price, 2)
 
@@ -664,7 +664,8 @@ you now have {new_count} shares and {new_balance} coins.'
             args = message_string.split(" ")[1:]
             wager = int(args[0])
             user_choice = args[1]
-        except Exception:
+        except Exception as e:
+            print(e)
             return "stop gambling"
 
         # check user input again
