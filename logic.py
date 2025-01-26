@@ -511,7 +511,7 @@ you now have {new_count} shares and {new_balance} coins.'
             return 'something went wrong, check the ticker name and try again :zunshaven:'
 
         # round share_price
-        rounded_price = int(share_price)
+        rounded_price = int(share_price) + 1
 
         output_str = f'the price for {share_count} shares of {ticker_name} is {rounded_price} zane coins\n\
 {round(share_price,6)} before rounding...'
