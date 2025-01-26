@@ -357,7 +357,7 @@ you now have {new_bal} coins'
         except Exception as e:
             # something went wrong, probably incorrect ticker name
             print(e)
-            return 'what :zquestion: recheck your message and try again bro :zunshaven: :zunshaven:'
+            return 'what recheck your message and try again bro'
 
         # check balance of the user
         coins = await self.get_coin_count_from_uid(user_uid)
@@ -413,7 +413,7 @@ but you only have {coins} coins'
             self.cursor.execute(update_query)
 
         # get user's balance after purchase
-        new_balance = await self.get_user_coins_response(message_string, user_message)
+        new_balance = await self.get_coin_count_from_uid(user_uid)
 
         return f'you have sucessfully bought {share_count} shares \
 of {ticker_name}, you now have {new_count} shares and {new_balance} coins.\n\
