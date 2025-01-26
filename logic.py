@@ -168,7 +168,7 @@ status     displays your cooldowns for +1/-1
 balance     displays your liquid amount of zane coins on hand
 rank     displays the server-wide ranking of user balance (shares not included)
 
-coinflip [heads/tails] [wager]     gamble your coins away, double your coins on win, lose all on loss
+coinflip [wager] [heads/tails]     gamble your coins away, double your coins on win, lose all on loss
 beg     get yourself out of zebt.
 check_price [ticker] (amount)     returns the price for a given amount of a company's shares, one if unspecified.
 buy_shares [ticker] [amount]     purchase shares in a company, the amount can also be fractional.
@@ -666,7 +666,7 @@ you now have {new_count} shares and {new_balance} coins.'
             user_choice = args[1]
         except Exception as e:
             print(e)
-            return "stop gambling"
+            return "check the command format again"
 
         # check user input again
         if not (user_choice == "heads" or user_choice == "tails"):
