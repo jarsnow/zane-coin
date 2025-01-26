@@ -363,7 +363,8 @@ you now have {new_bal} coins'
         coins = await self.get_coin_count_from_uid(user_uid)
 
         # can't buy if you don't have the cash
-        price = int(price)
+        # round, then add 1 to avoid 0 cost shares
+        price = int(price) + 1
         if coins < price:
             return f'mane you are broke broke, you need {price} coins, \
 but you only have {coins} coins'
@@ -510,9 +511,10 @@ you now have {new_count} shares and {new_balance} coins.'
             return 'something went wrong, check the ticker name and try again :zunshaven:'
 
         # round share_price
-        share_price = int(share_price)
+        rounded_price = int(share_price)
 
-        output_str = f'the price for {share_count} shares of {ticker_name} is {share_price} zane coins'
+        output_str = f'the price for {share_count} shares of {ticker_name} is {rounded_price} zane coins\n\
+{round(share_price,6)} before rounding...'
 
         return output_str
 
