@@ -320,7 +320,7 @@ you now have {new_bal} coins'
         for share in owned_shares:
             ticker_name, share_count = share[0], round(float(share[1]), 2)
             share_price = await self.get_share_price_from_name_amount(ticker_name, share_count)
-            share_price = int(share_price) - 1
+            share_price = int(share_price)
 
             out += f'{share_count} shares in {ticker_name}: \t\t {share_price} zc\n'
             total_share_value += share_price
