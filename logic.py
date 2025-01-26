@@ -219,7 +219,7 @@ reset_cd [user]     also not for you lol
         total_share_value = await self.get_user_total_share_worth(uid)
 
         if user_coins <= 0 and total_share_value > 10:
-            return 'are you some bezos wannabe? I know you aren\'t actually poor.\
+            return 'are you some bezos wannabe? I know you aren\'t actually poor. \
 sell some of those stocks if you really need some coin, man'
 
         if user_coins > 0:
@@ -365,7 +365,7 @@ you now have {new_bal} coins'
         # can't buy if you don't have the cash
         price = int(price)
         if coins < price:
-            return f'mane you are broke broke, you need {price} coins,\
+            return f'mane you are broke broke, you need {price} coins, \
 but you only have {coins} coins'
 
         # subtract price from user
