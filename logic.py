@@ -222,7 +222,10 @@ reset_cd [user]     also not for you lol
             return 'are you some bezos wannabe? I know you aren\'t actually poor. \
 sell some of those stocks if you really need some coin, man'
 
-        if user_coins > 0:
+        if user_coins >= 0:
+
+            if user_coins == 0:
+                no_beg = "you are broke but not broke broke... no coins for you."
 
             # message for <= 20 coins
             if user_coins <= 20:
