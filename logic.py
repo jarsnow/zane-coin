@@ -349,8 +349,7 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
             # add a zero back to the list and store it
             int_list.append(0)
             str_list = await self.convert_int_list_to_string_list(int_list)
-            update_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{
-                str_list}' WHERE UID = {uid};"
+            update_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{str_list}' WHERE UID = {uid};"
             self.cursor.execute(update_times)
 
         # change upgrade tier (zero case)
@@ -362,8 +361,7 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
 
         else:
             # increment by 1
-            increment_upgrade_tier = f"UPDATE Upgrades SET Tier = Tier + 1 WHERE UID = {
-                uid} AND Name = '{upgrade_name}';"
+            increment_upgrade_tier = f"UPDATE Upgrades SET Tier = Tier + 1 WHERE UID = {uid} AND Name = '{upgrade_name}';"
             self.cursor.execute(increment_upgrade_tier)
 
         return f"your {upgrade_name} upgrade is now level {upgrade_level_owned + 1}. enjoy!"
@@ -983,8 +981,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # replace the value in the sql database
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
-        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{
-            new_str_list_val}' WHERE UID = {user_uid};"
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
         target_name = await self.get_username_from_uid(target_uid, user_message)
@@ -1162,8 +1159,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # replace the value in the sql database
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
-        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{
-            new_str_list_val}' WHERE UID = {user_uid};"
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
         target_name = await self.get_username_from_uid(target_uid, user_message)
