@@ -16,14 +16,14 @@ class MyClient(discord.Client):
         # auto commit things to the database
         self.cursor = self.connection.cursor()
         # setup database if it does not exist
-        setup_command =    "CREATE TABLE IF NOT EXISTS Users (\
+        setup_command = "CREATE TABLE IF NOT EXISTS Users (\
                             UID INT PRIMARY KEY,\
                             CoinCount INT(255),\
                             TimeLastCoinsAwarded TEXT(512),\
                             TimeLastCoinsDeducted TEXT(512));"
 
         # setup shares table
-        setup_shares =  "CREATE TABLE IF NOT EXISTS Shares (\
+        setup_shares = "CREATE TABLE IF NOT EXISTS Shares (\
                          UID INT,\
                          StockTicker TEXT(8),\
                          ShareCount TEXT(256));"
@@ -37,7 +37,7 @@ Tier INT);"
         self.cursor.execute(setup_command)
         self.cursor.execute(setup_shares)
         self.cursor.execute(setup_upgrades)
-        print(f'Now running as {self.user}...')
+        print(f"Now running as {self.user}...")
 
     async def on_message(self, message):
         author = message.author
@@ -52,7 +52,9 @@ Tier INT);"
         if not await self.is_message_for_bot(content, channel):
             return
 
-        message_in_right_channel = await self.is_message_in_allowed_channel(content, channel)
+        message_in_right_channel = await self.is_message_in_allowed_channel(
+            content, channel
+        )
 
         # check for using +1, -1 outside of bot commands channel
         # use emoji reactions instead of text response
@@ -69,27 +71,31 @@ Tier INT);"
 
             # -100 for unknown code
             return_code = -100
-            if '+1' in lower:
+            if "+1" in lower:
                 # try doing +1 command
-                return_code = await self.user_awards_user_with_coin(lower, message, quick_response=True)
-            elif '-1' in lower:
-                return_code = await self.user_deducts_user_coin(lower, message, quick_response=True)
+                return_code = await self.user_awards_user_with_coin(
+                    lower, message, quick_response=True
+                )
+            elif "-1" in lower:
+                return_code = await self.user_deducts_user_coin(
+                    lower, message, quick_response=True
+                )
             # all possible return codes
             match (return_code):
                 case -5:
-                    emojis = ('zfacepalm', '❌')
+                    emojis = ("zfacepalm", "❌")
                 case -1:
-                    emojis = ('zwhimper', '✅')
+                    emojis = ("zwhimper", "✅")
                 case 0:
-                    emojis = ('zunshaven', '⏳')
+                    emojis = ("zunshaven", "⏳")
                 case 1:
-                    emojis = ('zshades', '✅')
+                    emojis = ("zshades", "✅")
                 case 5:
-                    emojis = ('zbomb', '❗')
+                    emojis = ("zbomb", "❗")
                 case 10:
-                    emojis = ('zomg', '🔟')
+                    emojis = ("zomg", "🔟")
                 case _:
-                    emojis = ('zquestion', '❓')
+                    emojis = ("zquestion", "❓")
 
             # add emojis in order to message
             await self.add_emoji_to_message_from_name(message, emojis)
@@ -137,7 +143,7 @@ Tier INT);"
             "help": self.user_asks_help,
             "upgrade": self.user_purchases_upgrades,
             "check_shop": self.user_checks_shop,
-            "check_upgrades": self.user_checks_upgrades
+            "check_upgrades": self.user_checks_upgrades,
         }
 
         # get the command by the first string of the message
@@ -162,7 +168,7 @@ Tier INT);"
     # (zc) help
     # (zc) help beg
     async def user_asks_help(self, message_string, user_message):
-        parameters = message_string.split(' ')
+        parameters = message_string.split(" ")
         all_commands = """\
 here's a list of all the usable commands
 parameters in brackets -> [] are required
@@ -197,17 +203,21 @@ reset_cd [user]     also not for you lol
     async def user_checks_upgrades(self, message_string, user_message):
         uid = user_message.author.id
 
-        names = ['bonus_give_chance',
-                 'plus_one_bonus_chance',
-                 'bonus_self_amount',
-                 'bonus_given_amount',
-                 '+1cooldown',
-                 '-1cooldown',
-                 '+1held']
-        
+        names = [
+            "bonus_give_chance",
+            "plus_one_bonus_chance",
+            "bonus_self_amount",
+            "bonus_given_amount",
+            "+1cooldown",
+            "-1cooldown",
+            "+1held",
+        ]
+
         out = ""
         for upgrade_name in names:
-            upgrade_tier = await self.get_user_upgrade_tier_from_uid_name(uid, upgrade_name)
+            upgrade_tier = await self.get_user_upgrade_tier_from_uid_name(
+                uid, upgrade_name
+            )
             out += f"{upgrade_name} level: {upgrade_tier}\n"
 
         return out
@@ -290,22 +300,26 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
         upgrade_name = params[0].lower()
 
         # upgrade names:
-        names = ['bonus_give_chance',
-                 'plus_one_bonus_chance',
-                 'bonus_self_amount',
-                 'bonus_given_amount',
-                 '+1cooldown',
-                 '-1cooldown',
-                 '+1held']
+        names = [
+            "bonus_give_chance",
+            "plus_one_bonus_chance",
+            "bonus_self_amount",
+            "bonus_given_amount",
+            "+1cooldown",
+            "-1cooldown",
+            "+1held",
+        ]
 
         # return error message for invalid name
         if upgrade_name not in names:
             return "that's not an upgrade name bud"
 
         # check user upgrade isn't maxed out already
-        upgrade_level_owned = await self.get_user_upgrade_tier_from_uid_name(uid, upgrade_name)
+        upgrade_level_owned = await self.get_user_upgrade_tier_from_uid_name(
+            uid, upgrade_name
+        )
         if upgrade_level_owned == 5:
-            return 'dang you are already cracked out, no need to upgrade'
+            return "dang you are already cracked out, no need to upgrade"
 
         # get upgrade price for next upgrade
         prices = [10, 25, 75, 250, 500]
@@ -314,38 +328,43 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
         # get user coins
         user_balance = await self.get_coin_count_from_uid(uid)
         if user_balance < price:
-            return 'toooooo poooor, try again'
+            return "toooooo poooor, try again"
 
         # purchase upgrade
         await self.change_user_coins_by_num(uid, -price)
 
         # check for pouch upgrade
         if upgrade_name == "+1held":
-            query_get_coin_awarded_times = f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {uid};"
+            query_get_coin_awarded_times = (
+                f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {uid};"
+            )
             self.cursor.execute(query_get_coin_awarded_times)
             awarded_times = self.cursor.fetchone()[0]
             int_list = await self.convert_string_list_to_int_list(awarded_times)
 
             # check to make sure the list is the right length
             if len(int_list) != 3 + upgrade_level_owned:
-                return 'uh oh'
+                return "uh oh"
 
             # add a zero back to the list and store it
             int_list.append(0)
             str_list = await self.convert_int_list_to_string_list(int_list)
-            update_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{str_list}' WHERE UID = {uid};"
+            update_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{
+                str_list}' WHERE UID = {uid};"
             self.cursor.execute(update_times)
 
         # change upgrade tier (zero case)
         if upgrade_level_owned == 0:
-            set_upgrade_tier_one = f"INSERT INTO Upgrades VALUES ({uid}, '{upgrade_name}', 1);"
+            set_upgrade_tier_one = (
+                f"INSERT INTO Upgrades VALUES ({uid}, '{upgrade_name}', 1);"
+            )
             self.cursor.execute(set_upgrade_tier_one)
 
         else:
             # increment by 1
-            increment_upgrade_tier = f"UPDATE Upgrades SET Tier = Tier + 1 WHERE UID = {uid} AND Name = '{upgrade_name}';"
+            increment_upgrade_tier = f"UPDATE Upgrades SET Tier = Tier + 1 WHERE UID = {
+                uid} AND Name = '{upgrade_name}';"
             self.cursor.execute(increment_upgrade_tier)
-
 
         return f"your {upgrade_name} upgrade is now level {upgrade_level_owned + 1}. enjoy!"
 
@@ -387,7 +406,9 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
         # add each share to output message
         for share in owned_shares:
             ticker_name, share_count = share[0], round(float(share[1]), 2)
-            share_price = await self.get_share_price_from_name_amount(ticker_name, share_count)
+            share_price = await self.get_share_price_from_name_amount(
+                ticker_name, share_count
+            )
             share_price = int(share_price)
 
             total_share_value += share_price
@@ -406,8 +427,8 @@ bonus_given_amount -> gives away more coins when giving away bonus coins
         total_share_value = await self.get_user_total_share_worth(uid)
 
         if user_coins <= 0 and total_share_value > 10:
-            return 'are you some bezos wannabe? I know you aren\'t actually poor. \
-sell some of those stocks if you really need some coin, man'
+            return "are you some bezos wannabe? I know you aren't actually poor. \
+sell some of those stocks if you really need some coin, man"
 
         if user_coins >= 0:
 
@@ -424,28 +445,28 @@ sell some of those stocks if you really need some coin, man'
                 await self.change_user_coins_by_num(uid, 1)
                 # new balance
                 new_bal = await self.get_coin_count_from_uid(uid)
-                return f'a passerby takes pity on you, and decides to give you a coin...\n\
-you now have {new_bal} coins'
+                return f"a passerby takes pity on you, and decides to give you a coin...\n\
+you now have {new_bal} coins"
             case 1:
                 # give 1 coin
                 await self.change_user_coins_by_num(uid, 1)
                 # new balance
                 new_bal = await self.get_coin_count_from_uid(uid)
-                return f'as you walk around the streets of san fransisco, you find a dirty coin on the ground...\n\
-you now have {new_bal} coins'
+                return f"as you walk around the streets of san fransisco, you find a dirty coin on the ground...\n\
+you now have {new_bal} coins"
             case 2:
                 # give no coins
-                return 'you should really get a job man.'
+                return "you should really get a job man."
             case 3:
-                return 'maybe try selling cans or something instead of begging.'
+                return "maybe try selling cans or something instead of begging."
             case _:
                 # take away 1 coin
                 await self.change_user_coins_by_num(uid, -1)
                 # new balance
                 new_bal = await self.get_coin_count_from_uid(uid)
-                return f'a rival beggar spots your setup and steals a nonexistent\
+                return f"a rival beggar spots your setup and steals a nonexistent\
                 coin from your stash, pushing you further into zebt...\n\
-you now have {new_bal} coins'
+you now have {new_bal} coins"
 
     # example usage:
     # (zc) check_shares
@@ -468,40 +489,41 @@ you now have {new_bal} coins'
         owned_shares = self.cursor.fetchall()
 
         if len(owned_shares) == 0:
-            return 'you have no shares in anything.'
+            return "you have no shares in anything."
 
         out = "current price summary:\n"
         total_share_value = 0
         # add each share to output message
         for share in owned_shares:
             ticker_name, share_count = share[0], round(float(share[1]), 2)
-            share_price = await self.get_share_price_from_name_amount(ticker_name, share_count)
+            share_price = await self.get_share_price_from_name_amount(
+                ticker_name, share_count
+            )
             share_price = int(share_price)
 
-            out += f'{share_count} shares in {ticker_name}: \t\t {share_price} zc\n'
+            out += f"{share_count} shares in {ticker_name}: \t\t {share_price} zc\n"
             total_share_value += share_price
 
         # display total share value
-        out += f'\ntotal share value: {total_share_value} zc'
+        out += f"\ntotal share value: {total_share_value} zc"
 
         return out
-
 
     # example usage:
     # (zc) buy_shares AAPL 1.35
     async def user_buys_shares(self, message_string, user_message):
         user_uid = user_message.author.id
         # get parameters
-        parameters = message_string.split(' ')[1:]
+        parameters = message_string.split(" ")[1:]
         ticker_name, share_count = parameters[0], float(parameters[1])
 
         # you can't buy negative stock amount
         if share_count < 0:
-            return 'do not try and game the system man.'
+            return "do not try and game the system man."
 
         # you can't buy zero stock
         if share_count == 0:
-            return 'now you are just being silly man'
+            return "now you are just being silly man"
 
         # round share count to 2 decimals
         share_count = round(share_count, 2)
@@ -509,11 +531,13 @@ you now have {new_bal} coins'
         # get price of requested shares
         price = 999999
         try:
-            price = await self.get_share_price_from_name_amount(ticker_name, share_count)
+            price = await self.get_share_price_from_name_amount(
+                ticker_name, share_count
+            )
         except Exception as e:
             # something went wrong, probably incorrect ticker name
             print(e)
-            return 'what recheck your message and try again bro'
+            return "what recheck your message and try again bro"
 
         # check balance of the user
         coins = await self.get_coin_count_from_uid(user_uid)
@@ -522,8 +546,8 @@ you now have {new_bal} coins'
         # round, then add 1 to avoid 0 cost shares
         price = int(price) + 1
         if coins < price:
-            return f'mane you are broke broke, you need {price} coins, \
-but you only have {coins} coins'
+            return f"mane you are broke broke, you need {price} coins, \
+but you only have {coins} coins"
 
         # subtract price from user
         user_uid = user_message.author.id
@@ -572,9 +596,9 @@ but you only have {coins} coins'
         # get user's balance after purchase
         new_balance = await self.get_coin_count_from_uid(user_uid)
 
-        return f'you have sucessfully bought {share_count} shares \
+        return f"you have sucessfully bought {share_count} shares \
 of {ticker_name}, you now have {new_count} shares and {new_balance} coins.\n\
-may luck be in your favor.'
+may luck be in your favor."
 
     # example usage
     # (zc) sell all
@@ -582,7 +606,7 @@ may luck be in your favor.'
         user_uid = user_message.author.id
 
         # get parameters
-        parameters = message_string.split(' ')[1:]
+        parameters = message_string.split(" ")[1:]
         ticker_name = parameters[0]
 
         # check to make sure the user has that amount of stocks
@@ -594,7 +618,7 @@ may luck be in your favor.'
         owned_shares = float(self.cursor.fetchall()[0][0])
 
         # special case, share_count == all
-        if parameters[1].lower() == 'all':
+        if parameters[1].lower() == "all":
             # set share_count to the amount of owned shares
             share_count = owned_shares
         else:
@@ -602,10 +626,10 @@ may luck be in your favor.'
 
         # you can't sell negative stock amount
         if share_count < 0:
-            return f'you do NOT have that many shares of {ticker_name}. don\'t play with me...'
+            return f"you do NOT have that many shares of {ticker_name}. don't play with me..."
 
         if share_count == 0:
-            return 'now you are just being silly man'
+            return "now you are just being silly man"
 
         # round share count to 2 decimals
         share_count = round(share_count, 2)
@@ -613,13 +637,15 @@ may luck be in your favor.'
         # get price of requested shares
         price = -9999999
         try:
-            price = await self.get_share_price_from_name_amount(ticker_name, share_count)
+            price = await self.get_share_price_from_name_amount(
+                ticker_name, share_count
+            )
 
             # price rounding
             price = int(price)
         except Exception:
             # something went wrong, probably incorrect ticker name
-            return 'what :zquestion: recheck your message and try again bro :zunshaven: :zunshaven:'
+            return "what :zquestion: recheck your message and try again bro :zunshaven: :zunshaven:"
 
         # add the price back to the user's balance
         await self.change_user_coins_by_num(user_uid, price)
@@ -637,15 +663,15 @@ may luck be in your favor.'
         # get user's balance after selling stock
         new_balance = await self.get_coin_count_from_uid(user_uid)
 
-        return f'you have sucessfully (or maybe unsucessfully) \
+        return f"you have sucessfully (or maybe unsucessfully) \
 sold {share_count} shares of {ticker_name}, gaining you {price} zane coins \n\
-you now have {new_count} shares and {new_balance} coins.'
+you now have {new_count} shares and {new_balance} coins."
 
     # example usage
     # (zc) check_price AAPL 1
     async def user_checks_price_of_share_count(self, message_string, user_message):
         # get parameters
-        parameters = message_string.split(' ')[1:]
+        parameters = message_string.split(" ")[1:]
 
         # if there's only one parameter, assume it's a testcase like
         # (zc) check_price AAPL
@@ -661,16 +687,20 @@ you now have {new_count} shares and {new_balance} coins.'
 
         share_price = -1
         try:
-            share_price = await self.get_share_price_from_name_amount(ticker_name, share_count)
+            share_price = await self.get_share_price_from_name_amount(
+                ticker_name, share_count
+            )
         except Exception as e:
             print(e)
-            return 'something went wrong, check the ticker name and try again :zunshaven:'
+            return (
+                "something went wrong, check the ticker name and try again :zunshaven:"
+            )
 
         # round share_price
         rounded_price = int(share_price) + 1
 
-        output_str = f'the price for {share_count} shares of {ticker_name} is {rounded_price} zane coins\n\
-{round(share_price,6)} before rounding...'
+        output_str = f"the price for {share_count} shares of {ticker_name} is {rounded_price} zane coins\n\
+{round(share_price, 6)} before rounding..."
 
         return output_str
 
@@ -710,13 +740,13 @@ you now have {new_count} shares and {new_balance} coins.'
 
         # return
         username = await self.get_username_from_uid(target_uid, user_message)
-        return_message = f'cooldowns reset for {username}'
+        return_message = f"cooldowns reset for {username}"
         return return_message
 
     async def reset_user_cooldowns(self, user_uid):
         # copied from adding new user command
         # get coin_count upgrade tier
-        coin_max = self.get_user_upgrade_tier_from_uid_name(user_uid, '+1held')
+        coin_max = await self.get_user_upgrade_tier_from_uid_name(user_uid, "+1held")
         zeroes = [0] * (3 + coin_max)
         coin_add_cd_list_as_string = await self.convert_int_list_to_string_list(zeroes)
         coin_deduct_cd_list_as_string = await self.convert_int_list_to_string_list([0])
@@ -734,7 +764,7 @@ you now have {new_count} shares and {new_balance} coins.'
         # make a new list of the last times they gave a coin
         # initialize to all zeroes so the user can give x amount away at the start
         # get coin_count upgrade tier
-        coin_max = await self.get_user_upgrade_tier_from_uid_name(user_uid, '+1held')
+        coin_max = await self.get_user_upgrade_tier_from_uid_name(user_uid, "+1held")
         zeroes = [0] * (3 + coin_max)
         coin_add_cd_list_as_string = await self.convert_int_list_to_string_list(zeroes)
         coin_deduct_cd_list_as_string = await self.convert_int_list_to_string_list([0])
@@ -750,7 +780,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # special case if coins is zero
         if coins == 0:
-            return 'you have no coins... get your money up.'
+            return "you have no coins... get your money up."
 
         # print normal output for users with more than one coin
         # add flavor text to ending
@@ -789,17 +819,17 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
     async def get_flavor_text_from_coin_count(self, coin_count):
         texts = {
-                -1:'you are deep in zebt. how did this happen',
-                0:'get your money up man.',
-                1:'youi need to get a job, bum.',
-                2:'you are still broke, and a bum.',
-                3:'still pooooor!!!! lol',
-                5:'it\'s better than nothing I guess.',
-                7:'you are moving up in zociety.',
-                10:'big money moves.',
-                15:'you are rich rich, time to buy zounter ztrike cases',
-                25:'you are a zane coin millionaire (zillionaire)'
-                }
+            -1: "you are deep in zebt. how did this happen",
+            0: "get your money up man.",
+            1: "youi need to get a job, bum.",
+            2: "you are still broke, and a bum.",
+            3: "still pooooor!!!! lol",
+            5: "it's better than nothing I guess.",
+            7: "you are moving up in zociety.",
+            10: "big money moves.",
+            15: "you are rich rich, time to buy zounter ztrike cases",
+            25: "you are a zane coin millionaire (zillionaire)",
+        }
 
         # find the maximum value that the coin count rounds down to
         for val in list(texts.keys()):
@@ -856,14 +886,14 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         return int(self.cursor.fetchone()[0])
 
     async def change_user_coins_by_num(self, uid, change):
-        query_decrement_target_coins =    f"UPDATE Users\
+        query_decrement_target_coins = f"UPDATE Users\
                                             SET CoinCount = CoinCount + {change}\
                                             WHERE UID = {uid};"
 
         self.cursor.execute(query_decrement_target_coins)
 
     async def set_user_coins_by_num(self, uid, num):
-        query_decrement_target_coins =    f"UPDATE Users\
+        query_decrement_target_coins = f"UPDATE Users\
                                             SET CoinCount = {num}\
                                             WHERE UID = {uid};"
 
@@ -878,7 +908,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         uids = await self.get_uids_from_message_string(message_string)
         target_uid = uids[0]
 
-        args = message_string.strip().split(" ")[1:] # skip the zc
+        args = message_string.strip().split(" ")[1:]  # skip the zc
         count = int(args[1])
 
         await self.set_user_coins_by_num(target_uid, count)
@@ -892,15 +922,19 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
     # award on cooldown (0)
     # award went through normally (1)
     # award got lucky and did +10, (10)
-    async def user_awards_user_with_coin(self, message_string, user_message, quick_response=False):
+    async def user_awards_user_with_coin(
+        self, message_string, user_message, quick_response=False
+    ):
         user_uid = user_message.author.id
 
-        # check if the time of user's oldest awarded coin 
-        query_get_coin_awarded_times = f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        # check if the time of user's oldest awarded coin
+        query_get_coin_awarded_times = (
+            f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        )
         self.cursor.execute(query_get_coin_awarded_times)
         awarded_times = self.cursor.fetchone()[0]
 
-        if(awarded_times is None):
+        if awarded_times is None:
             return
 
         time_list = await self.convert_string_list_to_int_list(awarded_times)
@@ -912,7 +946,9 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         # get award cooldown from upgrades
         # should be
         # 24/20/16/12/8/4
-        plus_1_tier = await self.get_user_upgrade_tier_from_uid_name(user_uid, '+1cooldown')
+        plus_1_tier = await self.get_user_upgrade_tier_from_uid_name(
+            user_uid, "+1cooldown"
+        )
         cooldown = 24 - (4 * plus_1_tier)
         cooldown_secs = cooldown * 60 * 60
 
@@ -923,7 +959,10 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
             # return code 0 for no coins awarded
             if quick_response:
                 return 0
-            return f'you must wait {time_remaining_str} until you can award another coin.'
+            return (
+                f"you must wait {
+                    time_remaining_str} until you can award another coin."
+            )
         # get uids
         uids = await self.get_uids_from_message_string(message_string)
         target_uid = uids[0]
@@ -944,7 +983,8 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # replace the value in the sql database
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
-        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{new_str_list_val}' WHERE UID = {user_uid};"
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsAwarded = '{
+            new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
         target_name = await self.get_username_from_uid(target_uid, user_message)
@@ -952,7 +992,9 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         # random chance for +1 to be +10
         # bonus_give_chance -> increases chance to give bonus coins (base amount is +10) when giving a coin to a user
         # 5%/8%/11%/14%/17%/20%
-        chance_upgrade = await self.get_user_upgrade_tier_from_uid_name(user_uid, 'bonus_give_chance')
+        chance_upgrade = await self.get_user_upgrade_tier_from_uid_name(
+            user_uid, "bonus_give_chance"
+        )
         lucky_chance = 0.05 + 0.03 * chance_upgrade
         if random.random() < lucky_chance:
             # get upgrade count for user given amount
@@ -962,8 +1004,12 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
             bonus_given_amount -> gives away more coins when giving away bonus coins
             10/11/13/16/20/25
             """
-            target_upgrade_count = await self.get_user_upgrade_tier_from_uid_name(user_uid, 'bonus_given_amount')
-            self_upgrade_count = await self.get_user_upgrade_tier_from_uid_name(user_uid, 'bonus_self_amount')
+            target_upgrade_count = await self.get_user_upgrade_tier_from_uid_name(
+                user_uid, "bonus_given_amount"
+            )
+            self_upgrade_count = await self.get_user_upgrade_tier_from_uid_name(
+                user_uid, "bonus_self_amount"
+            )
 
             target_bonuses = [10, 11, 13, 16, 20, 25]
             target_bonus = target_bonuses[target_upgrade_count]
@@ -986,11 +1032,15 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         # check chance for user to get +1 for themselves
         # plus_one_bonus_chance -> adds chance to get back +1 when giving a coin
         # 0%/10%/20%/30%/40%/50%
-        self_bonus_chance_upgrade = await self.get_user_upgrade_tier_from_uid_name(user_uid, 'self_bonus_chance')
+        self_bonus_chance_upgrade = await self.get_user_upgrade_tier_from_uid_name(
+            user_uid, "plus_one_bonus_chance"
+        )
+        print("upgrade_level:,", self_bonus_chance_upgrade)
         bonus_chance = 0.10 * self_bonus_chance_upgrade
+        print(bonus_chance)
         if random.random() < bonus_chance:
             await self.change_user_coins_by_num(user_uid, 1)
-            out += "\n you also got one back for yourself, how lucky!"
+            out += "\nyou also got one back for yourself, how lucky!"
 
         # return code 1 for 1 coin awarded
         if quick_response:
@@ -1015,7 +1065,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         amount = 0
 
         try:
-            amount = int(message_string.split(' ')[2])
+            amount = int(message_string.split(" ")[2])
         except Exception as e:
             print(e)
             pass
@@ -1030,7 +1080,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         # check to see that the user has enough to give
         giver_balance = await self.get_coin_count_from_uid(user_uid)
         if giver_balance < amount:
-            return 'you are TOO POOR to give this many coins away... lol.'
+            return "you are TOO POOR to give this many coins away... lol."
 
         # exchange coins
         await self.change_user_coins_by_num(user_uid, -amount)
@@ -1045,15 +1095,19 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
     # -1 for normal case
     # 0 for failed case (cooldown most likely)
     # 5 for rare chance case
-    async def user_deducts_user_coin(self, message_string, user_message, quick_response=False):
+    async def user_deducts_user_coin(
+        self, message_string, user_message, quick_response=False
+    ):
         user_uid = user_message.author.id
 
-        # check if the time of user's oldest awarded coin 
-        query_get_coin_deducted_times = f"SELECT TimeLastCoinsDeducted FROM Users WHERE UID = {user_uid};"
+        # check if the time of user's oldest awarded coin
+        query_get_coin_deducted_times = (
+            f"SELECT TimeLastCoinsDeducted FROM Users WHERE UID = {user_uid};"
+        )
         self.cursor.execute(query_get_coin_deducted_times)
         deducted_times = self.cursor.fetchone()[0]
 
-        if(deducted_times is None):
+        if deducted_times is None:
             return
 
         time_list = await self.convert_string_list_to_int_list(deducted_times)
@@ -1061,10 +1115,14 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # cooldown is
         # 8/6/4
-        cooldown_upgrade = await self.get_user_upgrade_tier_from_uid_name(user_uid, "-1cooldown")
+        cooldown_upgrade = await self.get_user_upgrade_tier_from_uid_name(
+            user_uid, "-1cooldown"
+        )
         cooldowns_hours = [8, 6, 4, 3, 2, 1]
         cooldown_hours = cooldowns_hours[cooldown_upgrade]
-        deducting_cooldown = cooldown_hours * 60 * 60  # get the seconds in a given amount of hours
+        deducting_cooldown = (
+            cooldown_hours * 60 * 60
+        )  # get the seconds in a given amount of hours
 
         # get current epoch time
         curr_time = int(time.time())
@@ -1074,14 +1132,18 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
             if quick_response:
                 return 0
 
-            cooldown_upgrade = await self.get_user_upgrade_tier_from_uid_name(user_uid, "-1cooldown")
+            cooldown_upgrade = await self.get_user_upgrade_tier_from_uid_name(
+                user_uid, "-1cooldown"
+            )
             cooldowns_hours = [8, 6, 4, 3, 2, 1]
             cooldown_hours = cooldowns_hours[cooldown_upgrade]
-            deducting_cooldown = cooldown_hours * 60 * 60  # get the seconds in a given amount of hours
+            deducting_cooldown = (
+                cooldown_hours * 60 * 60
+            )  # get the seconds in a given amount of hours
 
             time_remaining_int = oldest_deducted + deducting_cooldown - curr_time
             time_remaining_str = datetime.timedelta(seconds=time_remaining_int)
-            return f'you must wait {time_remaining_str} until you can deduct another user\'s coins... why must your heart be so gray...'
+            return f"you must wait {time_remaining_str} until you can deduct another user's coins... why must your heart be so gray..."
 
         # get uids
         uids = await self.get_uids_from_message_string(message_string)
@@ -1100,7 +1162,8 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
 
         # replace the value in the sql database
         new_str_list_val = await self.convert_int_list_to_string_list(time_list)
-        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{new_str_list_val}' WHERE UID = {user_uid};"
+        query_replace_awarded_times = f"UPDATE Users SET TimeLastCoinsDeducted = '{
+            new_str_list_val}' WHERE UID = {user_uid};"
         self.cursor.execute(query_replace_awarded_times)
 
         target_name = await self.get_username_from_uid(target_uid, user_message)
@@ -1155,7 +1218,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
                 target_name = await self.get_username_from_uid(UID, user_message)
             except Exception:
                 target_name = "idk who this is"
-            output += (f"{i + 1}. **{target_name}** has {CoinCount} coins. \n")
+            output += f"{i + 1}. **{target_name}** has {CoinCount} coins. \n"
 
         output += "...\n"
         output += f"the bottom {highest_least_shown} brokest server members:\n"
@@ -1174,28 +1237,31 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
             try:
                 target_name = await self.get_username_from_uid(UID, user_message)
             except Exception:
-                target_name = "(probably some bot)"     
-            output += (f"{i}. **{target_name}** has {CoinCount} coins. \n")
+                target_name = "(probably some bot)"
+            output += f"{i}. **{target_name}** has {CoinCount} coins. \n"
 
         return output
 
-    async def get_status_response(self, message_string, user_message): 
+    async def get_status_response(self, message_string, user_message):
         user_uid = user_message.author.id
 
         # get the timers for users
-        query_get_coin_awarded_times = f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        query_get_coin_awarded_times = (
+            f"SELECT TimeLastCoinsAwarded FROM Users WHERE UID = {user_uid};"
+        )
         self.cursor.execute(query_get_coin_awarded_times)
         awarded_times = self.cursor.fetchone()[0]
 
-        if(awarded_times is None):
+        if awarded_times is None:
             return
 
         time_list = await self.convert_string_list_to_int_list(awarded_times)
         curr_time = int(time.time())
-        HOUR_IN_SECONDS = 60 * 60
 
         # get +1 cooldown for user
-        plus_one_tier = await self.get_user_upgrade_tier_from_uid_name(user_uid, "+1cooldown")
+        plus_one_tier = await self.get_user_upgrade_tier_from_uid_name(
+            user_uid, "+1cooldown"
+        )
         hours_in_cd = 24 - 4 * plus_one_tier
         seconds_in_cd = hours_in_cd * 60 * 60
 
@@ -1210,13 +1276,14 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
         # coin2 cooldown: READY
         result = ""
         for i, time_value in enumerate(time_list):
-            result += f"Coin {i+ 1} Cooldown: "
+            result += f"Coin {i + 1} Cooldown: "
             seconds_remaining = time_value + seconds_in_cd - curr_time
-            if (seconds_remaining <= 0):
+            if seconds_remaining <= 0:
                 result += "READY"
             else:
                 # add time remaining
-                time_remaining_str = str(datetime.timedelta(seconds=seconds_remaining))
+                time_remaining_str = str(
+                    datetime.timedelta(seconds=seconds_remaining))
                 result += time_remaining_str + " | "
                 # add loading bar
                 # add one tag for each increment
@@ -1270,25 +1337,26 @@ def setup():
     # load discord token from .env file
     load_dotenv()
     global discord_token
-    discord_token = os.getenv('DISCORD_TOKEN')
+    discord_token = os.getenv("DISCORD_TOKEN")
 
     # load groq token from .env file
     global groq_token
-    groq_token = os.getenv('GROQ_API_KEY')
+    groq_token = os.getenv("GROQ_API_KEY")
 
     # used for quip
     global this_bot_uid
-    this_bot_uid = int(os.getenv('BOT_UID'))
+    this_bot_uid = int(os.getenv("BOT_UID"))
 
     global usable_channel_id
-    usable_channel_id = int(os.getenv('CHANNEL_ID'))
+    usable_channel_id = int(os.getenv("CHANNEL_ID"))
 
     global mod_uid
-    mod_uid = int(os.getenv('MOD_UID'))
+    mod_uid = int(os.getenv("MOD_UID"))
 
     # set bot prefix
     global prefix
-    prefix = 'zc'
+    prefix = "zc"
+
 
 def main():
 
