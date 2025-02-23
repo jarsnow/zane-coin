@@ -957,10 +957,7 @@ VALUES ({user_uid}, 0, '{coin_add_cd_list_as_string}', '{coin_deduct_cd_list_as_
             # return code 0 for no coins awarded
             if quick_response:
                 return 0
-            return (
-                f"you must wait {
-                    time_remaining_str} until you can award another coin."
-            )
+            return (f"you must wait {time_remaining_str} until you can award another coin.")
         # get uids
         uids = await self.get_uids_from_message_string(message_string)
         target_uid = uids[0]
